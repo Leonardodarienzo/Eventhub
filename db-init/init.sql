@@ -1,0 +1,1 @@
+CREATE DATABASE eventhub_db;
