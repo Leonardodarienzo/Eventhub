@@ -1,0 +1,10 @@
+<div *ngIf="events.length > 0; else noEvents">
+  <div *ngFor="let event of events">
+    <h2>{{ event.title }}</h2>
+    <p>{{ event.description }}</p>
+  </div>
+</div>
+
+<ng-template #noEvents>
+  <p>Nessun evento disponibile al momento.</p>
+</ng-template>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EventService } from '../../services/event.service';
+import { EventsService } from '../../services/event.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -8,26 +8,28 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="max-w-5xl mx-auto p-6">
-      <h1 class="text-3xl font-black mb-8">I miei Biglietti</h1>
-      <div *ngIf="tickets.length > 0; else noTickets" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div *ngFor="let t of tickets" class="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-6 flex items-center gap-6 shadow-sm">
-          <img [src]="'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + t.id" class="border p-1 bg-white">
-          <div class="flex-1">
-            <h3 class="font-bold text-xl">{{t.eventTitolo}}</h3>
-            <p class="text-xs text-gray-400 font-mono">{{t.id}}</p>
-            <button (click)="cancel(t.id)" class="mt-4 text-red-500 text-xs font-bold uppercase hover:underline">Disiscriviti</button>
-          </div>
+    <div class="container mx-auto p-4">
+      <h1 class="text-2xl font-bold mb-4">I Miei Biglietti Prenotati</h1>
+      <div *ngIf="tickets.length === 0" class="text-gray-500">Non hai ancora prenotato nessun biglietto.</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div *ngFor="let t of tickets" class="border p-4 rounded shadow bg-white">
+          <h2 class="text-xl font-semibold">Codice Biglietto: #{{ t.id }}</h2>
+          <p class="text-gray-600 text-sm">ID Evento: {{ t.event_id }}</p>
         </div>
       </div>
-      <ng-template #noTickets><p class="italic text-gray-400 text-center py-20">Non hai ancora acquistato biglietti.</p></ng-template>
     </div>
   `
 })
 export class UserDashboardComponent implements OnInit {
   tickets: any[] = [];
-  constructor(private es: EventService, private auth: AuthService) {}
-  ngOnInit() { this.load(); }
-  load() { this.tickets = this.es.getBookings().filter(t => t.userEmail === this.auth.currentUser()?.email); }
-  cancel(id: string) { if(confirm('Vuoi annullare la prenotazione?')) { this.es.unsubscribe(id).subscribe(() => this.load()); } }
+
+  constructor(private es: EventsService, private auth: AuthService) {}
+
+  ngOnInit(): void {
+    // Usiamo il tuo metodo reale getMyTickets()
+    // Sostituisci la chiamata errata con questa:
+    this.es.getMyTickets().subscribe((data: any[]) => {
+      this.tickets = data;
+    });
+  }
 }

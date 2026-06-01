@@ -1,45 +1,70 @@
-import { Injectable, signal } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: 'user' | 'organizer' | 'admin';
+  is_banned: boolean;
+}
+
+interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 export class AuthService {
-  currentUser = signal<any>(JSON.parse(localStorage.getItem('user_session') || 'null'));
+  private apiUrl = 'https://organic-zebra-76jr9g4x6vw2x56j-5000.app.github.dev/api/auth';
+  
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
 
-  private getDbUsers(): any[] {
-    const saved = localStorage.getItem('db_users');
-    const users = saved ? JSON.parse(saved) : [];
-    // Se non c'è nessuno, aggiungiamo un utente admin di default
-    if (users.length === 0) {
-      users.push({ email: 'admin@test.it', password: '123', role: 'admin' });
-      localStorage.setItem('db_users', JSON.stringify(users));
+  constructor(private http: HttpClient) {
+    const savedUser = localStorage.getItem('eh_user');
+    if (savedUser) {
+      this.currentUserSubject.next(JSON.parse(savedUser));
     }
-    return users;
   }
 
-  register(data: any): Observable<any> {
-    const users = this.getDbUsers();
-    users.push({ ...data, role: 'user' });
-    localStorage.setItem('db_users', JSON.stringify(users));
-    return of({ success: true });
+  public get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
   }
 
-  login(credentials: any): Observable<any> {
-    const users = this.getDbUsers();
-    const found = users.find((u: any) => 
-      u.email.toLowerCase().trim() === credentials.email.toLowerCase().trim() && 
-      u.password === credentials.password
+  public get accessToken(): string | null {
+    return localStorage.getItem('eh_access_token');
+  }
+
+  register(userData: unknown): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/register`, userData);
+  }
+
+  login(credentials: unknown): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+      tap((response: AuthResponse) => {
+        localStorage.setItem('eh_access_token', response.access_token);
+        localStorage.setItem('eh_refresh_token', response.refresh_token);
+        localStorage.setItem('eh_user', JSON.stringify(response.user));
+        this.currentUserSubject.next(response.user);
+      })
     );
-
-    if (found) {
-      localStorage.setItem('user_session', JSON.stringify(found));
-      this.currentUser.set(found);
-      return of(found);
-    }
-    return throwError(() => new Error('Errore'));
   }
 
-  logout() {
-    localStorage.removeItem('user_session');
-    this.currentUser.set(null);
+  logout(): void {
+    localStorage.removeItem('eh_access_token');
+    localStorage.removeItem('eh_refresh_token');
+    localStorage.removeItem('eh_user');
+    this.currentUserSubject.next(null);
+  }
+
+  hasRole(roles: string[]): boolean {
+    const user = this.currentUserValue;
+    if (!user) return false;
+    return roles.includes(user.role);
   }
 }
