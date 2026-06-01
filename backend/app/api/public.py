@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Event, User
 from app.schemas import events_schema
@@ -42,10 +42,12 @@ def register():
             "username": user.username
         }
     )
+    refresh_token = create_refresh_token(identity=user.id)
 
     return jsonify({
         "message": "Registrazione completata con successo",
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "user": {"id": user.id, "email": user.email, "username": user.username, "role": user.role}
     }), 201
 
@@ -73,9 +75,26 @@ def login():
             "username": user.username
         }
     )
+    refresh_token = create_refresh_token(identity=user.id)
 
     return jsonify({
         "message": "Accesso eseguito con successo",
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "user": {"id": user.id, "email": user.email, "username": user.username, "role": user.role}
     }), 200
+
+@public_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    identity = get_jwt_identity()
+    user = User.query.get_or_404(identity)
+    access_token = create_access_token(
+        identity=user.id,
+        additional_claims={
+            "roles": [user.role],
+            "email": user.email,
+            "username": user.username
+        }
+    )
+    return jsonify({"access_token": access_token}), 200

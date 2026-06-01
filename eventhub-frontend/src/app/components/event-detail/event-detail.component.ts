@@ -9,12 +9,12 @@ import { Evento } from '../../models/event.model';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="max-w-4xl mx-auto p-6" *ngIf="evento">
+    <div class="max-w-4xl mx-auto p-6" *ngIf="evento; else loading">
       <a routerLink="/" class="text-indigo-600 font-bold mb-4 inline-block">← Torna alla lista</a>
       <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
         <img [src]="evento.immagine" class="w-full h-80 object-cover">
         <div class="p-8">
-          <div class="flex justify-between items-center mb-4">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
              <h1 class="text-4xl font-black text-gray-900">{{evento.titolo}}</h1>
              <span class="bg-green-100 text-green-700 px-4 py-1 rounded-full font-bold text-sm">Posti: {{evento.posti_disponibili}}</span>
           </div>
@@ -24,7 +24,7 @@ import { Evento } from '../../models/event.model';
             <div>
               <p class="text-xs font-bold text-gray-400 uppercase">Quando e Dove</p>
               <p class="font-bold text-gray-800">{{evento.data | date:'fullDate'}}</p>
-              <p class="text-gray-600">{{evento.luogo}}, {{evento.citta}}</p>
+              <p class="text-gray-600">{{evento.luogo}}</p>
             </div>
             <div>
               <p class="text-xs font-bold text-gray-400 uppercase">Prezzo Biglietto</p>
@@ -33,11 +33,14 @@ import { Evento } from '../../models/event.model';
           </div>
           
           <button class="w-full bg-indigo-600 text-white mt-8 py-4 rounded-xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition">
-            Acquista Biglietto
+            Iscriviti all'evento
           </button>
         </div>
       </div>
     </div>
+    <ng-template #loading>
+      <div class="text-center py-20 text-gray-500">Caricamento evento...</div>
+    </ng-template>
   `
 })
 export class EventDetailComponent implements OnInit {
@@ -47,6 +50,9 @@ export class EventDetailComponent implements OnInit {
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.evento = this.eventService.getEventoById(id);
+    this.eventService.getEventoById(id).subscribe({
+      next: event => this.evento = event,
+      error: () => this.evento = undefined
+    });
   }
 }

@@ -46,6 +46,9 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    JWT_ACCESS_TOKEN_EXPIRES = 900
+    JWT_REFRESH_TOKEN_EXPIRES = 30 * 24 * 60 * 60
+
     # Configurazione per il caricamento delle immagini di copertina
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'app/static/uploads')
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024

@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -14,6 +15,7 @@ import { Router, RouterLink } from '@angular/router';
           <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Crea il tuo Account</h2>
           <p class="mt-2 text-sm text-gray-500">Unisciti a EventHub per partecipare ai migliori eventi</p>
         </div>
+        <div *ngIf="error" class="p-3 mb-4 bg-red-600 text-white text-xs font-bold rounded shadow">{{ error }}</div>
         
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="mt-8 space-y-4">
           <div class="space-y-4">
@@ -47,17 +49,26 @@ import { Router, RouterLink } from '@angular/router';
 })
 export class RegisterComponent {
   registerForm: FormGroup;
-  constructor(private fb: FormBuilder, private router: Router) {
+  error = '';
+
+  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.registerForm = this.fb.group({
       nome: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
+
   onSubmit() {
-    if (this.registerForm.valid) {
-      alert('Registrazione completata!');
-      this.router.navigate(['/login']);
+    if (this.registerForm.invalid) {
+      return;
     }
+
+    this.auth.register(this.registerForm.value).subscribe({
+      next: () => this.router.navigate(['/']),
+      error: err => {
+        this.error = err.error?.error || 'Impossibile registrare l’utente';
+      }
+    });
   }
 }

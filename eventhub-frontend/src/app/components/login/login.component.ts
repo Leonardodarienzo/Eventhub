@@ -12,7 +12,6 @@ import { AuthService } from '../../services/auth.service';
     <div class="flex min-h-screen items-center justify-center bg-gray-100">
       <div class="max-w-md w-full bg-white p-8 rounded shadow-lg border-t-4 border-blue-600">
         <h2 class="text-2xl font-bold mb-2 text-center">LOGIN</h2>
-        <p class="text-center text-gray-500 text-xs mb-6 font-mono text-blue-600">PROVA: admin@test.it / 123</p>
         <div *ngIf="error" class="p-3 mb-4 bg-red-600 text-white text-xs font-bold rounded shadow">{{error}}</div>
         <form [formGroup]="f" (ngSubmit)="ok()">
           <input formControlName="email" type="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
@@ -27,17 +26,24 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   f: FormGroup;
   error = '';
+
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.f = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
   }
+
   ok() {
-    if (this.auth.login(this.f.value)) {
-      this.router.navigate(['/']);
-    } else {
-      this.error = 'ERRORE: CREDENZIALI NON TROVATE NEL DATABASE!';
+    if (this.f.invalid) {
+      return;
     }
+
+    this.auth.login(this.f.value).subscribe({
+      next: () => this.router.navigate(['/']),
+      error: err => {
+        this.error = err.error?.error || 'Credenziali non valide';
+      }
+    });
   }
 }

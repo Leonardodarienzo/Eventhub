@@ -5,8 +5,24 @@ from app.utils import require_role
 
 admin_bp = Blueprint('admin', __name__)
 
+@admin_bp.route('/users', methods=['GET'])
+@require_role('admin')
+def list_users():
+    users = User.query.all()
+    output = []
+    for user in users:
+        output.append({
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+            "banned": user.role == 'banned'
+        })
+    return jsonify({"users": output}), 200
+
+
 @admin_bp.route('/users/<int:user_id>/role', methods=['PUT'])
-@require_role('admin') # Bloccato solo per gli Admin di Keycloak
+@require_role('admin')
 def change_user_role(user_id):
     """Promozione di un utente a Organizzatore o cambio ruolo locale"""
     data = request.get_json()

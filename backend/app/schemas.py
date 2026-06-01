@@ -9,6 +9,9 @@ class EventSchema(Schema):
     category = fields.Str(required=True, validate=validate.OneOf(["concerto", "workshop", "presentazione_libro"]))
     price = fields.Float(required=True, validate=validate.Range(min=0.0))
     total_seats = fields.Int(required=True, validate=validate.Range(min=1))
+    available_seats = fields.Int(dump_only=True)
+    cover_image = fields.Str(dump_only=True)
+    organizer_id = fields.Int(dump_only=True)
 
 class ReviewSchema(Schema):
     id = fields.Int(dump_only=True)

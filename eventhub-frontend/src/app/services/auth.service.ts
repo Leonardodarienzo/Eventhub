@@ -1,47 +1,49 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+
+const API_URL = 'http://127.0.0.1:5000/api';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  currentUser = signal<any>(JSON.parse(localStorage.getItem('user_session') || 'null'));
+  private currentUserSubject = new BehaviorSubject<any>(JSON.parse(localStorage.getItem('user_session') || 'null'));
+  currentUser$ = this.currentUserSubject.asObservable();
 
-  private getUsers(): any[] {
-    const saved = localStorage.getItem('db_users');
-    const users = saved ? JSON.parse(saved) : [];
-    // SE IL DB È VUOTO, AGGIUNGIAMO UN UTENTE DI TEST AUTOMATICAMENTE
-    if (users.length === 0) {
-      const admin = { email: 'admin@test.it', password: '123', role: 'admin' };
-      users.push(admin);
-      localStorage.setItem('db_users', JSON.stringify(users));
-    }
-    return users;
+  constructor(private http: HttpClient) {}
+
+  get currentUser() {
+    return this.currentUserSubject.value;
   }
 
-  register(data: any) {
-    const users = this.getUsers();
-    users.push({ email: data.email, password: data.password, role: 'user' });
-    localStorage.setItem('db_users', JSON.stringify(users));
-    console.log('REGISTRAZIONE AVVENUTA PER:', data.email);
+  get token(): string | null {
+    return this.currentUserSubject.value?.access_token || null;
   }
 
-  login(credentials: any): boolean {
-    const users = this.getUsers();
-    console.log('UTENTI DISPONIBILI NEL DB:', users);
-
-    const found = users.find((u: any) => 
-      u.email.toLowerCase().trim() === credentials.email.toLowerCase().trim() && 
-      u.password === credentials.password
+  login(credentials: any): Observable<any> {
+    return this.http.post(`${API_URL}/public/login`, credentials).pipe(
+      tap((response: any) => {
+        localStorage.setItem('user_session', JSON.stringify(response));
+        this.currentUserSubject.next(response);
+      })
     );
+  }
 
-    if (found) {
-      localStorage.setItem('user_session', JSON.stringify(found));
-      this.currentUser.set(found);
-      return true;
-    }
-    return false;
+  register(data: any): Observable<any> {
+    const payload = { email: data.email, username: data.nome, password: data.password };
+    return this.http.post(`${API_URL}/public/register`, payload).pipe(
+      tap((response: any) => {
+        localStorage.setItem('user_session', JSON.stringify(response));
+        this.currentUserSubject.next(response);
+      })
+    );
   }
 
   logout() {
     localStorage.removeItem('user_session');
-    this.currentUser.set(null);
+    this.currentUserSubject.next(null);
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.currentUserSubject.value?.access_token;
   }
 }

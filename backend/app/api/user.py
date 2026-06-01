@@ -30,6 +30,34 @@ def update_profile():
     }), 200
 
 
+@user_bp.route('/profile', methods=['GET'])
+@require_role()
+def get_profile():
+    user = User.query.get_or_404(int(g.current_user['id']))
+    return jsonify({
+        "user": {"id": user.id, "email": user.email, "username": user.username, "role": user.role}
+    }), 200
+
+
+@user_bp.route('/profile/password', methods=['PUT'])
+@require_role()
+def change_password():
+    data = request.get_json() or {}
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({"error": "old_password e new_password sono obbligatori"}), 400
+
+    user = User.query.get_or_404(int(g.current_user['id']))
+    if not user.check_password(old_password):
+        return jsonify({"error": "Password corrente non corretta"}), 403
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"message": "Password modificata con successo"}), 200
+
+
 @user_bp.route('/subscribe/<int:event_id>', methods=['POST'])
 @require_role('user')
 def subscribe_to_event(event_id):

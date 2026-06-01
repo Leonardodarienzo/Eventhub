@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify, render_template_string
 from config import Config
 from app.extensions import db, migrate, cors, jwt
 
@@ -21,6 +21,52 @@ def create_app(config_class=Config):
     # Registrazione dei Blueprint
     from app.api import api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    @app.route('/api/docs', methods=['GET'])
+    def api_docs():
+        return render_template_string(
+            '''<!doctype html>
+            <html>
+              <head>
+                <title>EventHub API Docs</title>
+                <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+              </head>
+              <body>
+                <redoc spec-url="/api/openapi.json"></redoc>
+              </body>
+            </html>'''
+        )
+
+    @app.route('/api/openapi.json', methods=['GET'])
+    def api_openapi():
+        return jsonify({
+            "openapi": "3.0.0",
+            "info": {
+                "title": "EventHub API",
+                "version": "1.0",
+                "description": "API REST per EventHub"
+            },
+            "paths": {
+                "/api/public/events": {
+                    "get": {
+                        "summary": "Elenco degli eventi pubblici",
+                        "responses": {"200": {"description": "Lista eventi"}}
+                    }
+                },
+                "/api/public/login": {
+                    "post": {
+                        "summary": "Login utente",
+                        "responses": {"200": {"description": "Token JWT"}}
+                    }
+                },
+                "/api/public/register": {
+                    "post": {
+                        "summary": "Registrazione utente",
+                        "responses": {"201": {"description": "Utente registrato"}}
+                    }
+                }
+            }
+        })
 
     with app.app_context():
         from datetime import datetime

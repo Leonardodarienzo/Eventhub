@@ -13,29 +13,35 @@ import { Evento } from '../../models/event.model';
     <div class="max-w-7xl mx-auto p-6">
       <h1 class="text-3xl font-bold mb-6 text-gray-900 italic underline">EventHub - Prossimi Eventi</h1>
       
-      <!-- FILTRI E RICERCA -->
       <div class="bg-indigo-50 p-6 rounded-2xl mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 shadow-sm border border-indigo-100">
         <input [(ngModel)]="filtroTitolo" (input)="applicaFiltri()" placeholder="Cerca per titolo..." class="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none">
         
         <select [(ngModel)]="filtroCategoria" (change)="applicaFiltri()" class="p-2 border rounded-lg">
           <option value="">Tutte le categorie</option>
-          <option value="Concerti">Concerti</option>
-          <option value="Workshop">Workshop</option>
-          <option value="Libri">Libri</option>
+          <option value="concerto">Concerti</option>
+          <option value="workshop">Workshop</option>
+          <option value="presentazione_libro">Presentazioni libri</option>
         </select>
 
         <select [(ngModel)]="filtroCitta" (change)="applicaFiltri()" class="p-2 border rounded-lg">
           <option value="">Tutte le città</option>
           <option value="Roma">Roma</option>
           <option value="Milano">Milano</option>
-          <option value="Torino">Torino</option><option value="Bologna">Bologna</option><option value="Firenze">Firenze</option><option value="Napoli">Napoli</option><option value="Venezia">Venezia</option><option value="Palermo">Palermo</option><option value="Bari">Bari</option><option value="Genova">Genova</option>
+          <option value="Torino">Torino</option>
+          <option value="Bologna">Bologna</option>
+          <option value="Firenze">Firenze</option>
+          <option value="Napoli">Napoli</option>
+          <option value="Venezia">Venezia</option>
+          <option value="Palermo">Palermo</option>
+          <option value="Bari">Bari</option>
+          <option value="Genova">Genova</option>
         </select>
 
         <input [(ngModel)]="filtroPrezzo" (input)="applicaFiltri()" type="number" placeholder="Prezzo max €" class="p-2 border rounded-lg">
       </div>
 
-      <!-- LISTA EVENTI -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div *ngIf="isLoading" class="text-center py-16 text-gray-500">Caricamento eventi...</div>
+      <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div *ngFor="let ev of eventiFiltrati" class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:scale-105 transition-transform duration-300">
           <img [src]="ev.immagine" class="w-full h-48 object-cover">
           <div class="p-5">
@@ -49,13 +55,14 @@ import { Evento } from '../../models/event.model';
           </div>
         </div>
       </div>
-      <div *ngIf="eventiFiltrati.length === 0" class="text-center py-20 text-gray-400 italic">Nessun evento trovato...</div>
+      <div *ngIf="!isLoading && eventiFiltrati.length === 0" class="text-center py-20 text-gray-400 italic">Nessun evento trovato...</div>
     </div>
   `
 })
 export class HomeComponent implements OnInit {
   eventi: Evento[] = [];
   eventiFiltrati: Evento[] = [];
+  isLoading = true;
 
   filtroTitolo: string = '';
   filtroCategoria: string = '';
@@ -65,8 +72,18 @@ export class HomeComponent implements OnInit {
   constructor(private eventService: EventService) {}
 
   ngOnInit() {
-    this.eventi = this.eventService.getEventi();
-    this.eventiFiltrati = this.eventi;
+    this.eventService.getEventi().subscribe({
+      next: events => {
+        this.eventi = events;
+        this.eventiFiltrati = events;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.eventi = [];
+        this.eventiFiltrati = [];
+        this.isLoading = false;
+      }
+    });
   }
 
   applicaFiltri() {

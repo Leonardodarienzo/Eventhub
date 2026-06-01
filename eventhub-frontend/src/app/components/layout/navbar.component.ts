@@ -14,14 +14,14 @@ import { CommonModule } from '@angular/common';
         <a routerLink="/" class="hover:text-indigo-600 font-medium text-gray-700">Esplora</a>
         
         <!-- SE NON LOGGATO -->
-        <div *ngIf="!auth.currentUser()" class="space-x-2">
+        <div *ngIf="!auth.currentUser" class="space-x-2">
            <a routerLink="/login" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium">Accedi</a>
         </div>
 
         <!-- SE LOGGATO -->
-        <div *ngIf="auth.currentUser()" class="flex items-center space-x-6">
+        <div *ngIf="auth.currentUser" class="flex items-center space-x-6">
            <span class="text-sm font-bold text-gray-700 uppercase">
-             Ciao, {{ auth.currentUser().email.split('@')[0] }}
+             Ciao, {{ auth.currentUser.user.email.split('@')[0] }}
            </span>
            <button (click)="onLogout()" class="text-red-500 text-sm font-bold border border-red-200 px-3 py-1 rounded-md hover:bg-red-50">Esci</button>
         </div>
