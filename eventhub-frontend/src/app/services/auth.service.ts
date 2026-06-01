@@ -1,78 +1,45 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-
-const API_URL = '/api';
-
-interface StoredSession {
-  access_token: string;
-  refresh_token: string;
-  user: { id: number; email: string; username: string; role: string };
-}
+import { Injectable, signal } from '@angular/core';
+import { Observable, of, throwError } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<any>(this.loadUser());
-  currentUser$ = this.currentUserSubject.asObservable();
-  
-  private loadUser(): any {
-    const session = localStorage.getItem('user_session');
-    if (!session) return null;
-    try {
-      const parsed = JSON.parse(session) as StoredSession;
-      return parsed.user;
-    } catch {
-      return null;
+  currentUser = signal<any>(JSON.parse(localStorage.getItem('user_session') || 'null'));
+
+  private getDbUsers(): any[] {
+    const saved = localStorage.getItem('db_users');
+    const users = saved ? JSON.parse(saved) : [];
+    // Se non c'è nessuno, aggiungiamo un utente admin di default
+    if (users.length === 0) {
+      users.push({ email: 'admin@test.it', password: '123', role: 'admin' });
+      localStorage.setItem('db_users', JSON.stringify(users));
     }
-  }
-
-  constructor(private http: HttpClient) {}
-
-  get currentUser() {
-    return this.currentUserSubject.value;
-  }
-
-  get token(): string | null {
-    const session = localStorage.getItem('user_session');
-    if (!session) return null;
-    try {
-      return (JSON.parse(session) as StoredSession).access_token;
-    } catch {
-      return null;
-    }
-  }
-
-  login(credentials: any): Observable<any> {
-    return this.http.post(`${API_URL}/public/login`, credentials).pipe(
-      tap((response: any) => {
-        localStorage.setItem('user_session', JSON.stringify(response));
-        this.currentUserSubject.next(response.user);
-      })
-    );
+    return users;
   }
 
   register(data: any): Observable<any> {
-    const payload = { email: data.email, username: data.username, password: data.password };
-    return this.http.post(`${API_URL}/public/register`, payload).pipe(
-      tap((response: any) => {
-        localStorage.setItem('user_session', JSON.stringify(response));
-        this.currentUserSubject.next(response.user);
-      })
+    const users = this.getDbUsers();
+    users.push({ ...data, role: 'user' });
+    localStorage.setItem('db_users', JSON.stringify(users));
+    return of({ success: true });
+  }
+
+  login(credentials: any): Observable<any> {
+    const users = this.getDbUsers();
+    const found = users.find((u: any) => 
+      u.email.toLowerCase().trim() === credentials.email.toLowerCase().trim() && 
+      u.password === credentials.password
     );
+
+    if (found) {
+      localStorage.setItem('user_session', JSON.stringify(found));
+      this.currentUser.set(found);
+      return of(found);
+    }
+    return throwError(() => new Error('Errore'));
   }
 
   logout() {
     localStorage.removeItem('user_session');
-    this.currentUserSubject.next(null);
-  }
-
-  isAuthenticated(): boolean {
-    const session = localStorage.getItem('user_session');
-    if (!session) return false;
-    try {
-      return !!(JSON.parse(session) as StoredSession).access_token;
-    } catch {
-      return false;
-    }
+    this.currentUser.set(null);
   }
 }

@@ -1,98 +1,38 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { Evento } from '../models/event.model';
-
-const API_URL = '/api';
+import { Observable, of } from 'rxjs';
+import { Evento, Biglietto, Recensione } from '../models/event.model';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
-  constructor(private http: HttpClient) {}
+  private eventi: Evento[] = [
+    { id: 1, titolo: 'Jazz Night', categoria: 'Concerti', descrizione: 'Jazz sotto le stelle.', data: '2027-07-15', citta: 'Milano', luogo: 'Parco Sempione', prezzo: 20, posti_disponibili: 50, immagine: 'https://images.unsplash.com/photo-1511192336575-5a79af67a62d?w=400' },
+    { id: 2, titolo: 'Workshop Angular', categoria: 'Workshop', descrizione: 'Sviluppo Full-stack.', data: '2027-09-10', citta: 'Roma', luogo: 'Tech Hub', prezzo: 50, posti_disponibili: 10, immagine: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400' },
+    { id: 3, titolo: 'Evento Passato (Test Recensioni)', categoria: 'Libri', descrizione: 'Un evento già concluso.', data: '2023-01-01', citta: 'Torino', luogo: 'Libreria', prezzo: 0, posti_disponibili: 0, immagine: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400' }
+  ];
 
-  getEventi(): Observable<Evento[]> {
-    return this.http.get<{ events: any[] }>(`${API_URL}/public/events`).pipe(
-      map(response => response.events.map(event => this.normalizeEvent(event)))
-    );
+  getEventi(): Observable<Evento[]> { return of(this.eventi); }
+  getEventoById(id: number): Observable<Evento | undefined> { return of(this.eventi.find(e => e.id === id)); }
+  getBookings(): Biglietto[] { return JSON.parse(localStorage.getItem('user_tickets') || '[]'); }
+  
+  subscribeToEvent(evento: Evento, email: string): Observable<any> {
+    const tickets = this.getBookings();
+    tickets.push({ id: 'TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase(), eventId: evento.id, eventTitolo: evento.titolo, userEmail: email, dataAcquisto: new Date().toISOString() });
+    localStorage.setItem('user_tickets', JSON.stringify(tickets));
+    return of({ success: true });
   }
 
-  getEventoById(id: number): Observable<Evento> {
-    return this.http.get<{ event: any }>(`${API_URL}/public/events/${id}`).pipe(
-      map(response => this.normalizeEvent(response.event))
-    );
+  unsubscribe(ticketId: string): Observable<any> {
+    const tickets = this.getBookings().filter(t => t.id !== ticketId);
+    localStorage.setItem('user_tickets', JSON.stringify(tickets));
+    return of({ success: true });
   }
 
-  subscribeToEvent(eventId: number) {
-    return this.http.post(`${API_URL}/user/subscribe/${eventId}`, {});
+  addReview(review: Recensione): Observable<any> {
+    const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
+    reviews.push(review);
+    localStorage.setItem('reviews', JSON.stringify(reviews));
+    return of({ success: true });
   }
 
-  getMyTickets() {
-    return this.http.get<{ tickets: any[] }>(`${API_URL}/user/tickets`);
-  }
-
-  getProfile() {
-    return this.http.get<{ user: any }>(`${API_URL}/user/profile`);
-  }
-
-  getOrganizerDashboard() {
-    return this.http.get<{ organizer: any; stats: any }>(`${API_URL}/organizer/dashboard`);
-  }
-
-  getOrganizerEvents() {
-    return this.http.get<{ events: any[] }>(`${API_URL}/organizer/events`);
-  }
-
-  createEvent(payload: FormData) {
-    return this.http.post(`${API_URL}/organizer/events`, payload);
-  }
-
-  deleteEvent(eventId: number) {
-    return this.http.delete(`${API_URL}/organizer/events/${eventId}`);
-  }
-
-  exportEventCsv(eventId: number) {
-    return this.http.get(`${API_URL}/organizer/events/${eventId}/export-csv`, { responseType: 'blob' });
-  }
-
-  getAdminUsers() {
-    return this.http.get<{ users: any[] }>(`${API_URL}/admin/users`);
-  }
-
-  getFlaggedReviews() {
-    return this.http.get<{ flagged_reviews: any[] }>(`${API_URL}/admin/reviews/flagged`);
-  }
-
-  flagReview(reviewId: number) {
-    return this.http.post(`${API_URL}/user/reviews/${reviewId}/flag`, {});
-  }
-
-  changeUserRole(userId: number, role: string) {
-    return this.http.put(`${API_URL}/admin/users/${userId}/role`, { role });
-  }
-
-  banUser(userId: number) {
-    return this.http.put(`${API_URL}/admin/users/${userId}/ban`, {});
-  }
-
-  unbanUser(userId: number) {
-    return this.http.put(`${API_URL}/admin/users/${userId}/unban`, {});
-  }
-
-  private normalizeEvent(event: any): Evento {
-    const locationParts = (event.location || '').split(',').map((part: string) => part.trim()).filter((part: string) => part.length > 0);
-    const city = locationParts.length > 1 ? locationParts[locationParts.length - 1] : locationParts[0] || 'Sconosciuta';
-
-    return {
-      id: event.id,
-      titolo: event.title,
-      descrizione: event.description,
-      data: event.date,
-      citta: city,
-      luogo: event.location,
-      prezzo: event.price,
-      categoria: event.category,
-      posti_disponibili: event.available_seats,
-      immagine: event.cover_image || 'https://via.placeholder.com/800'
-    };
-  }
+  getOrganizerEvents(): Observable<Evento[]> { return of(this.eventi); }
 }

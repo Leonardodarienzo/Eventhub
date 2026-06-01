@@ -10,3 +10,16 @@ export interface Evento {
   posti_disponibili: number;
   immagine: string;
 }
+export interface Recensione {
+  eventId: number;
+  userEmail: string;
+  rating: number;
+  commento: string;
+}
+export interface Biglietto {
+  id: string;
+  eventId: number;
+  eventTitolo: string;
+  userEmail: string;
+  dataAcquisto: string;
+}
