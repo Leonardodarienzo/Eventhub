@@ -2,19 +2,67 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Event, User
-from app.schemas import events_schema
+from app.schemas import event_schema, events_schema
+from sqlalchemy import or_
+from datetime import datetime
 
 public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/events', methods=['GET'])
 def get_events():
-    events = Event.query.order_by(Event.date.asc()).all()
+    query = Event.query.order_by(Event.date.asc())
+
+    category = request.args.get('category')
+    city = request.args.get('city')
+    min_date = request.args.get('min_date')
+    max_date = request.args.get('max_date')
+    max_price = request.args.get('max_price')
+    search = request.args.get('search')
+
+    if category:
+        query = query.filter(Event.category == category)
+
+    if city:
+        query = query.filter(Event.location.ilike(f"%{city}%"))
+
+    if min_date:
+        try:
+            min_dt = datetime.fromisoformat(min_date)
+            query = query.filter(Event.date >= min_dt)
+        except ValueError:
+            return jsonify({"error": "Formato data min_date non valido. Usa YYYY-MM-DD o ISO 8601."}), 400
+
+    if max_date:
+        try:
+            max_dt = datetime.fromisoformat(max_date)
+            query = query.filter(Event.date <= max_dt)
+        except ValueError:
+            return jsonify({"error": "Formato data max_date non valido. Usa YYYY-MM-DD o ISO 8601."}), 400
+
+    if max_price is not None and max_price != '':
+        try:
+            max_price_val = float(max_price)
+            query = query.filter(Event.price <= max_price_val)
+        except ValueError:
+            return jsonify({"error": "max_price deve essere un numero."}), 400
+
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.filter(
+            or_(
+                Event.title.ilike(search_term),
+                Event.description.ilike(search_term),
+                Event.location.ilike(search_term)
+            )
+        )
+
+    events = query.all()
     return jsonify({"events": events_schema.dump(events)}), 200
 
 @public_bp.route('/events/<int:event_id>', methods=['GET'])
 def get_event(event_id):
     event = Event.query.get_or_404(event_id)
-    return jsonify({"event": events_schema.dump(event)}), 200
+    return jsonify({"event": event_schema.dump(event)}), 200
 
 @public_bp.route('/register', methods=['POST'])
 def register():

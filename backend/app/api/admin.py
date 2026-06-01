@@ -16,7 +16,7 @@ def list_users():
             "email": user.email,
             "username": user.username,
             "role": user.role,
-            "banned": user.role == 'banned'
+            "banned": bool(user.banned)
         })
     return jsonify({"users": output}), 200
 
@@ -41,12 +41,20 @@ def change_user_role(user_id):
 @admin_bp.route('/users/<int:user_id>/ban', methods=['PUT'])
 @require_role('admin')
 def ban_user(user_id):
-    """Semplice ban locale (impostando un flag o cambiando ruolo in 'banned')"""
+    """Semplice ban locale impostando la flag di ban"""
     user = User.query.get_or_404(user_id)
-    user.role = 'banned' # Le rotte con @require_role rifiuteranno l'accesso
+    user.banned = True
     db.session.commit()
-    
-    return jsonify({"message": f"Utente {user.username} bannato con successo dalle risorse locali"}), 200
+    return jsonify({"message": f"Utente {user.username} bannato con successo"}), 200
+
+
+@admin_bp.route('/users/<int:user_id>/unban', methods=['PUT'])
+@require_role('admin')
+def unban_user(user_id):
+    user = User.query.get_or_404(user_id)
+    user.banned = False
+    db.session.commit()
+    return jsonify({"message": f"Utente {user.username} ripristinato con successo"}), 200
 
 
 @admin_bp.route('/reviews/flagged', methods=['GET'])

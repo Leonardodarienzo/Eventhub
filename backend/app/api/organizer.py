@@ -1,10 +1,12 @@
 import os
-from flask import Blueprint, jsonify, request, g, current_app
+from flask import Blueprint, jsonify, request, g, current_app, Response
 from werkzeug.utils import secure_filename
 from app.extensions import db
 from app.models import User, Event
 from app.schemas import event_schema, events_schema
 from app.utils import require_role
+import csv
+import io
 
 organizer_bp = Blueprint('organizer', __name__)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -125,3 +127,29 @@ def delete_event(event_id):
     db.session.delete(event)
     db.session.commit()
     return jsonify({"message": "Evento eliminato con successo"}), 200
+
+
+@organizer_bp.route('/events/<int:event_id>/export-csv', methods=['GET'])
+@require_role('organizer')
+def export_event_attendees(event_id):
+    user = User.query.get_or_404(int(g.current_user['id']))
+    event = Event.query.filter_by(id=event_id, organizer_id=user.id).first_or_404()
+
+    tickets = event.tickets
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ticket_id', 'user_id', 'username', 'email', 'event_title', 'purchase_date'])
+
+    for ticket in tickets:
+        writer.writerow([
+            ticket.id,
+            ticket.user_id,
+            ticket.user.username,
+            ticket.user.email,
+            event.title,
+            ticket.purchase_date.isoformat()
+        ])
+
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers['Content-Disposition'] = f'attachment; filename=event_{event_id}_attendees.csv'
+    return response

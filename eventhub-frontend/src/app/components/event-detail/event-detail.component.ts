@@ -32,27 +32,62 @@ import { Evento } from '../../models/event.model';
             </div>
           </div>
           
-          <button class="w-full bg-indigo-600 text-white mt-8 py-4 rounded-xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition">
+          <button (click)="subscribe()" class="w-full bg-indigo-600 text-white mt-8 py-4 rounded-xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition">
             Iscriviti all'evento
           </button>
+          <p *ngIf="message" class="mt-4 text-green-600 font-semibold">{{ message }}</p>
+          <p *ngIf="error" class="mt-4 text-red-600 font-semibold">{{ error }}</p>
         </div>
       </div>
     </div>
     <ng-template #loading>
-      <div class="text-center py-20 text-gray-500">Caricamento evento...</div>
+      <div *ngIf="isLoading && !error" class="text-center py-20 text-gray-500">Caricamento evento...</div>
+      <div *ngIf="!isLoading && error" class="text-center py-20 text-red-600 font-bold">{{ error }}</div>
     </ng-template>
   `
 })
 export class EventDetailComponent implements OnInit {
   evento: Evento | undefined;
+  isLoading = true;
+  error = '';
+  message = '';
 
   constructor(private route: ActivatedRoute, private eventService: EventService) {}
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
+    if (!id || isNaN(id)) {
+      this.error = 'ID evento non valido';
+      this.isLoading = false;
+      return;
+    }
+
     this.eventService.getEventoById(id).subscribe({
-      next: event => this.evento = event,
-      error: () => this.evento = undefined
+      next: event => {
+        this.evento = event;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.error = 'Impossibile caricare i dettagli dell\'evento';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  subscribe() {
+    if (!this.evento) {
+      return;
+    }
+
+    this.eventService.subscribeToEvent(this.evento.id).subscribe({
+      next: () => {
+        this.message = 'Iscrizione completata con successo! Controlla i tuoi biglietti.';
+        this.error = '';
+      },
+      error: err => {
+        this.error = err.error?.error || 'Errore durante l\'iscrizione';
+        this.message = '';
+      }
     });
   }
 }

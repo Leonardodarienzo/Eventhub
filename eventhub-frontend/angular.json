@@ -60,7 +60,8 @@
               "buildTarget": "eventhub-frontend:build:production"
             },
             "development": {
-              "buildTarget": "eventhub-frontend:build:development"
+              "buildTarget": "eventhub-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

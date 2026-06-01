@@ -13,6 +13,7 @@ import { AuthService } from '../../services/auth.service';
       <div class="max-w-md w-full bg-white p-8 rounded shadow-lg">
         <h2 class="text-2xl font-bold mb-6 text-center">REGISTRAZIONE</h2>
         <form [formGroup]="f" (ngSubmit)="save()">
+          <input formControlName="username" type="text" placeholder="Nome utente" class="w-full p-2 mb-4 border">
           <input formControlName="email" type="email" placeholder="Email" class="w-full p-2 mb-4 border">
           <input formControlName="password" type="password" placeholder="Password" class="w-full p-2 mb-4 border">
           <button type="submit" [disabled]="f.invalid" class="w-full bg-green-600 text-white p-2 font-bold uppercase">Crea Account</button>
@@ -24,15 +25,25 @@ import { AuthService } from '../../services/auth.service';
 })
 export class RegisterComponent {
   f: FormGroup;
+  error = '';
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
     this.f = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(3)]]
     });
   }
+
   save() {
-    this.auth.register(this.f.value);
-    alert('ACCOUNT CREATO! ORA FAI IL LOGIN.');
-    this.router.navigate(['/login']);
+    if (this.f.invalid) {
+      return;
+    }
+
+    this.auth.register(this.f.value).subscribe({
+      next: () => this.router.navigate(['/']),
+      error: err => {
+        this.error = err.error?.error || 'Impossibile completare la registrazione';
+      }
+    });
   }
 }

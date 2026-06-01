@@ -19,10 +19,9 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- SE LOGGATO -->
-        <div *ngIf="auth.currentUser" class="flex items-center space-x-6">
-           <span class="text-sm font-bold text-gray-700 uppercase">
-             Ciao, {{ auth.currentUser.user.email.split('@')[0] }}
-           </span>
+        <div *ngIf="auth.currentUser" class="flex items-center space-x-4">
+           <span class="text-sm font-bold text-gray-700 uppercase">Ciao, {{ auth.currentUser.email.split('@')[0] }}</span>
+           <a routerLink="/profile" class="text-sm text-gray-600 hover:text-indigo-600">Profilo</a>
            <button (click)="onLogout()" class="text-red-500 text-sm font-bold border border-red-200 px-3 py-1 rounded-md hover:bg-red-50">Esci</button>
         </div>
       </div>

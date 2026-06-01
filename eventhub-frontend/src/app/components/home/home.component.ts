@@ -18,23 +18,12 @@ import { Evento } from '../../models/event.model';
         
         <select [(ngModel)]="filtroCategoria" (change)="applicaFiltri()" class="p-2 border rounded-lg">
           <option value="">Tutte le categorie</option>
-          <option value="concerto">Concerti</option>
-          <option value="workshop">Workshop</option>
-          <option value="presentazione_libro">Presentazioni libri</option>
+          <option *ngFor="let cat of categorie" [value]="cat">{{ cat }}</option>
         </select>
 
         <select [(ngModel)]="filtroCitta" (change)="applicaFiltri()" class="p-2 border rounded-lg">
           <option value="">Tutte le città</option>
-          <option value="Roma">Roma</option>
-          <option value="Milano">Milano</option>
-          <option value="Torino">Torino</option>
-          <option value="Bologna">Bologna</option>
-          <option value="Firenze">Firenze</option>
-          <option value="Napoli">Napoli</option>
-          <option value="Venezia">Venezia</option>
-          <option value="Palermo">Palermo</option>
-          <option value="Bari">Bari</option>
-          <option value="Genova">Genova</option>
+          <option *ngFor="let city of citta" [value]="city">{{ city }}</option>
         </select>
 
         <input [(ngModel)]="filtroPrezzo" (input)="applicaFiltri()" type="number" placeholder="Prezzo max €" class="p-2 border rounded-lg">
@@ -69,6 +58,9 @@ export class HomeComponent implements OnInit {
   filtroCitta: string = '';
   filtroPrezzo: number | null = null;
 
+  categorie: string[] = [];
+  citta: string[] = [];
+
   constructor(private eventService: EventService) {}
 
   ngOnInit() {
@@ -76,14 +68,22 @@ export class HomeComponent implements OnInit {
       next: events => {
         this.eventi = events;
         this.eventiFiltrati = events;
+        this.categorie = this.getUnique(events.map(ev => ev.categoria));
+        this.citta = this.getUnique(events.map(ev => ev.citta));
         this.isLoading = false;
       },
       error: () => {
         this.eventi = [];
         this.eventiFiltrati = [];
+        this.categorie = [];
+        this.citta = [];
         this.isLoading = false;
       }
     });
+  }
+
+  getUnique(values: string[]): string[] {
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, 'it'));
   }
 
   applicaFiltri() {

@@ -165,3 +165,12 @@ def add_review(event_id):
     db.session.commit()
 
     return jsonify({"message": "Recensione pubblicata con successo!"}), 201
+
+
+@user_bp.route('/reviews/<int:review_id>/flag', methods=['POST'])
+@require_role('user')
+def flag_review(review_id):
+    review = Review.query.get_or_404(review_id)
+    review.is_flagged = True
+    db.session.commit()
+    return jsonify({"message": "Recensione segnalata per moderazione."}), 200
